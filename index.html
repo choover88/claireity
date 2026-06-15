@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Mindful Pace</title>
+
+<!--
+  =========================================================================
+  MINDFUL PACE  -  a private, single-file companion for mindful drinking
+  =========================================================================
+  Everything lives in this one file. Your data is stored only in your
+  browser on this device (localStorage). Nothing is uploaded anywhere.
+
+  EDIT THE WORDS: see the CONFIG block near the top of the <script> at the
+  bottom (look for "=== EDIT YOUR PROMPTS & SUGGESTIONS HERE ===").
+  EDIT COLORS/FONT: see the :root block and @font-face in the CSS below.
+  =========================================================================
+-->
+
+<!-- Poppins = body/UI font. Playfair Display = heading FALLBACK only,
+     used until your real Safira March file is in place (see @font-face). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Chart.js powers the dashboard charts. The one external library; it loads
+     from a public link (a CDN) and is NOT stored in your repo. Delete this
+     line to go fully offline (the charts just won't draw). -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+  /* Safira March = your heading font. Free for PERSONAL USE, not on Google
+     Fonts, so it self-hosts. Drop the file next to index.html named
+     SafiraMarch.woff2 and/or SafiraMarch.otf and titles switch to it on their
+     own. Until then they fall back to Playfair Display. */
+  @font-face{
+    font-family: "Safira March";
+    src: url("SafiraMarch.woff2") format("woff2"),
+         url("SafiraMarch.otf") format("opentype");
+    font-weight: 400 700;
+    font-display: swap;
+  }
+
+  /* ===================== THEME (edit colors here) ===================== */
+  :root{
+    --ink:#2b2e34; --plum:#4b2a4f; --teal:#1c626d; --teal-deep:#1f5e63;
+    --berry:#a83086; --pink:#c04f9d; --slate:#5f7f8e; --mauve:#958099; --mist:#d8dee4;
+    --bg:#f5f6f8; --card:#ffffff; --line:#e6e9ee; --muted-text:#6b7480;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(43,46,52,.05), 0 6px 20px rgba(43,46,52,.06);
+    --maxw:560px;
+    --serif:"Safira March","Playfair Display",Georgia,"Times New Roman",serif;
+    --sans:"Poppins",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+  /* Buttons don't inherit the page font on their own, so set it once here. */
+  button{ font-family:var(--sans); }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:var(--sans); color:var(--ink); background:var(--bg); line-height:1.5; -webkit-font-smoothing:antialiased; }
+
+  .app{ max-width:var(--maxw); margin:0 auto; min-height:100vh; position:relative; }
+
+  header.topbar{
+    padding:calc(env(safe-area-inset-top) + 18px) 20px 16px;
+    background:linear-gradient(135deg,var(--plum),var(--teal-deep));
+    color:#fff; border-bottom-left-radius:22px; border-bottom-right-radius:22px;
+  }
+  header.topbar .brand{ font-family:var(--serif); font-weight:600; font-size:26px; letter-spacing:.3px; margin:0; }
+  header.topbar .date{ margin:2px 0 0; font-size:13px; opacity:.85; }
+
+  main{ padding:18px 16px 156px; }
+  .panel{ display:none; }
+  .panel.active{ display:block; animation:fade .25s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:14px; box-shadow:var(--shadow); }
+  .card h2{ font-family:var(--serif); color:var(--plum); font-size:20px; font-weight:600; margin:0 0 4px; }
+  .card .sub{ color:var(--muted-text); font-size:13.5px; margin:0 0 14px; }
+  .panel > h1{ font-family:var(--serif); color:var(--ink); font-size:24px; margin:4px 2px 14px; font-weight:600; }
+
+  label.field{ display:block; font-size:14px; font-weight:600; color:var(--ink); margin:14px 0 6px; }
+  .hint{ font-size:12.5px; color:var(--muted-text); margin:2px 0 0; }
+  input[type=text], input[type=number], textarea, select{
+    width:100%; border:1px solid var(--mist); border-radius:12px; padding:11px 12px;
+    font-size:15px; font-family:var(--sans); color:var(--ink); background:#fff;
+  }
+  textarea{ resize:vertical; min-height:64px; }
+  input[type=range]{ width:100%; accent-color:var(--teal); height:30px; cursor:pointer; }
+  input:focus, textarea:focus, select:focus{ outline:2px solid var(--teal); outline-offset:1px; border-color:var(--teal); }
+
+  .btn{ display:inline-flex; align-items:center; justify-content:center; border:none; border-radius:12px; cursor:pointer; font-size:15px; font-weight:600; padding:12px 16px; background:var(--teal); color:#fff; transition:filter .15s ease, transform .05s ease; }
+  .btn:hover{ filter:brightness(1.07); }
+  .btn:active{ transform:translateY(1px); }
+  .btn.block{ width:100%; }
+  .btn.ghost{ background:transparent; color:var(--teal); border:1px solid var(--mist); }
+  .btn.plum{ background:var(--plum); }
+  .btn.small{ padding:8px 12px; font-size:13.5px; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{ border:1px solid var(--mist); background:#fff; color:var(--ink); border-radius:999px; padding:9px 14px; font-size:14px; cursor:pointer; transition:all .12s ease; }
+  .chip[aria-pressed="true"]{ background:var(--teal); color:#fff; border-color:var(--teal); }
+  .chip.warm[aria-pressed="true"]{ background:var(--berry); border-color:var(--berry); }
+
+  .savebar{ margin-top:16px; }
+  .saved-flash{ color:var(--teal-deep); font-size:13px; font-weight:600; margin-left:10px; opacity:0; transition:opacity .2s; }
+  .saved-flash.show{ opacity:1; }
+  .gentle{ background:#f6eef4; border:1px solid #ecd7e6; border-radius:12px; padding:12px 14px; margin-top:12px; font-size:14px; color:var(--plum); }
+
+  .ritual{ border:1px solid var(--line); border-radius:var(--radius); margin-bottom:12px; overflow:hidden; background:var(--card); box-shadow:var(--shadow); }
+  .ritual > button.head{ width:100%; text-align:left; background:none; border:none; cursor:pointer; padding:16px 18px; display:flex; align-items:center; gap:12px; }
+  .ritual .head .ttl{ font-family:var(--serif); color:var(--plum); font-size:18px; font-weight:600; }
+  .ritual .head .when{ font-size:12px; color:var(--muted-text); display:block; margin-top:2px; }
+  .ritual .head .dot{ width:10px; height:10px; border-radius:50%; background:var(--mist); flex:0 0 auto; }
+  .ritual .head .dot.done{ background:var(--teal); }
+  .ritual .body{ padding:0 18px 18px; display:none; }
+  .ritual.open .body{ display:block; }
+  .ritual .head .chev{ margin-left:auto; color:var(--mauve); transition:transform .2s; }
+  .ritual.open .head .chev{ transform:rotate(180deg); }
+
+  .drink-row{ display:flex; align-items:flex-start; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .drink-row:last-child{ border-bottom:none; }
+  .drink-row .time{ font-weight:700; color:var(--teal-deep); font-size:14px; min-width:64px; }
+  .drink-row .meta{ flex:1; font-size:14px; }
+  .drink-row .meta small{ color:var(--muted-text); }
+  .tag{ display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin-top:4px; }
+  .tag.on{ background:#e3f0ef; color:var(--teal-deep); }
+  .tag.off{ background:#f6e7f0; color:var(--berry); }
+  .tag.unsure{ background:#eef0f3; color:var(--slate); }
+  .remove{ background:none; border:none; color:var(--mauve); cursor:pointer; font-size:18px; line-height:1; padding:4px; }
+
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; box-shadow:var(--shadow); }
+  .stat .num{ font-family:var(--serif); font-size:26px; font-weight:700; color:var(--teal-deep); line-height:1.1; }
+  .stat .lbl{ font-size:12px; color:var(--muted-text); margin-top:3px; }
+  .chart-wrap{ position:relative; height:200px; margin-top:6px; }
+
+  .milestone{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .milestone:last-child{ border-bottom:none; }
+  .ms-badge{ width:44px; height:44px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-weight:800; font-family:var(--serif); color:#fff; background:var(--mist); }
+  .ms-badge.reached{ background:linear-gradient(135deg,var(--berry),var(--pink)); }
+  .milestone .ms-text{ flex:1; }
+  .milestone .ms-text .t{ font-weight:700; font-size:14.5px; }
+
+  .value-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .value-row input{ flex:1; }
+
+  .safety{ background:#fbf3ee; border:1px solid #f0dccd; border-left:4px solid var(--berry); border-radius:12px; padding:14px 16px; font-size:13.5px; color:#6a3d2e; }
+  .safety b{ color:#7a2f2f; }
+
+  nav.tabs{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:var(--maxw); background:#fff; border-top:1px solid var(--line); display:flex; padding:6px 2px calc(env(safe-area-inset-bottom) + 6px); z-index:40; }
+  nav.tabs button{ flex:1; background:none; border:none; cursor:pointer; padding:8px 1px; color:var(--mauve); font-size:10.5px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:3px; }
+  nav.tabs button .ic{ font-size:18px; line-height:1; }
+  nav.tabs button[aria-current="true"]{ color:var(--teal); }
+
+  .urge-fab{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom) + 64px); z-index:45; background:linear-gradient(135deg,var(--berry),var(--pink)); color:#fff; border:none; border-radius:999px; padding:12px 22px; font-size:15px; font-weight:700; box-shadow:0 8px 24px rgba(168,48,134,.35); cursor:pointer; }
+  .urge-fab:active{ transform:translateX(-50%) translateY(1px); }
+
+  .overlay{ position:fixed; inset:0; background:rgba(43,46,52,.55); display:none; align-items:flex-end; justify-content:center; z-index:60; }
+  .overlay.open{ display:flex; }
+  .sheet{ background:var(--bg); width:100%; max-width:var(--maxw); border-top-left-radius:22px; border-top-right-radius:22px; max-height:92vh; overflow-y:auto; padding:8px 18px calc(env(safe-area-inset-bottom) + 24px); animation:slideup .3s ease; position:relative; }
+  .sheet-close{ position:sticky; top:6px; float:right; margin-right:-6px; background:#fff; border:1px solid var(--line); color:var(--mauve); width:34px; height:34px; border-radius:50%; font-size:22px; line-height:1; cursor:pointer; z-index:3; box-shadow:var(--shadow); }
+  @keyframes slideup{ from{transform:translateY(100%);} to{transform:none;} }
+  .sheet .grip{ width:42px; height:5px; border-radius:3px; background:var(--mist); margin:8px auto 12px; }
+  .sheet h2{ font-family:var(--serif); color:var(--plum); margin:0 0 4px; }
+  .urge-line{ font-size:17px; color:var(--ink); font-style:italic; font-family:var(--serif); margin:10px 0; }
+  .breath-zone{ text-align:center; padding:18px 0 6px; }
+  .breath{ width:140px; height:140px; border-radius:50%; margin:6px auto 10px; background:radial-gradient(circle at 35% 30%,var(--teal),var(--teal-deep)); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:600; transition:transform 4s ease-in-out; transform:scale(.7); }
+  .breath.inhale{ transform:scale(1.1); }
+  .timer{ font-family:var(--serif); font-size:30px; color:var(--teal-deep); font-weight:700; }
+  .toward-away{ display:flex; gap:10px; }
+  .toward-away .chip{ flex:1; text-align:center; }
+  .footnote{ text-align:center; font-size:11.5px; color:var(--mauve); padding:4px 8px 0; }
+
+  /* date navigation + calendar */
+  .datebar{ display:flex; align-items:center; gap:10px; justify-content:center; margin:0 0 8px; }
+  .dnav{ background:#fff; border:1px solid var(--line); border-radius:10px; width:38px; height:38px; font-size:20px; color:var(--teal); cursor:pointer; flex:0 0 auto; }
+  .dnav[disabled]{ color:var(--mist); cursor:default; }
+  .datebar input[type=date]{ width:auto; flex:0 1 auto; text-align:center; font-weight:600; color:var(--plum); }
+  #dateBanner{ text-align:center; margin:0 0 12px; min-height:0; }
+  #dateBanner .b{ display:inline-flex; gap:10px; align-items:center; background:#f6eef4; color:var(--plum); border:1px solid #ecd7e6; border-radius:999px; padding:6px 8px 6px 14px; font-size:12.5px; }
+  #dateBanner .b button{ background:var(--plum); color:#fff; border:none; border-radius:999px; padding:4px 10px; font-size:12px; cursor:pointer; }
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .cal-head #calTitle{ font-weight:700; font-family:var(--sans); color:var(--plum); font-size:16px; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .cal-dow{ text-align:center; font-size:10px; color:var(--mauve); font-weight:700; padding:2px 0; }
+  .cal-cell{ aspect-ratio:1; border-radius:9px; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:13px; cursor:pointer; background:#fff; color:var(--ink); }
+  .cal-cell.empty{ border:none; background:transparent; cursor:default; }
+  .cal-cell.future{ color:var(--mist); cursor:default; background:#fafbfc; }
+  .cal-cell.missed{ background:#f0f1f3; color:var(--mauve); }
+  .cal-cell.af{ background:#dcebe9; color:var(--teal-deep); font-weight:700; }
+  .cal-cell.drank{ background:#f3dcea; color:var(--berry); font-weight:700; }
+  .cal-cell.today{ outline:2px solid var(--teal); outline-offset:-2px; }
+  .cal-legend{ display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:11.5px; color:var(--muted-text); }
+  .cal-legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .cal-legend i{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <h1 class="brand">Mindful Pace</h1>
+    <p class="date" id="todayDate"></p>
+  </header>
+
+  <main>
+
+    <!-- ============================= TODAY ============================= -->
+    <section class="panel active" id="tab-today">
+      <h1>Today</h1>
+
+      <div class="datebar">
+        <button class="dnav" onclick="stepDate(-1)" aria-label="Previous day">&#8249;</button>
+        <input type="date" id="dateInput" onchange="jumpDate(this.value)" />
+        <button class="dnav" id="dateNext" onclick="stepDate(1)" aria-label="Next day">&#8250;</button>
+      </div>
+      <div id="dateBanner"></div>
+
+      <!-- MORNING-AFTER (now at the top) -->
+      <div class="ritual" data-ritual="morning">
+        <button class="head" onclick="toggleRitual(this)">
+          <span class="dot" id="dot-morning"></span>
+          <span><span class="ttl">Morning-after check</span><span class="when">First thing</span></span>
+          <span class="chev">&#8964;</span>
+        </button>
+        <div class="body">
+          <label class="field">How do I feel? <span style="font-weight:400;color:var(--muted-text)">(pick any)</span></label>
+          <div class="chips" id="maPhysical"></div>
+          <div id="maFeelCustom" style="margin-top:8px;"></div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" id="maFeelNew" placeholder="Add a feeling" style="flex:1;" />
+            <button class="btn ghost small" onclick="addFeeling()">Add</button>
+          </div>
+          <label class="field">Resting heart rate (optional)</label>
+          <input type="number" id="maRhr" min="30" max="160" step="1" placeholder="bpm" />
+          <label class="field">What do I notice about yesterday's choices and today's body or mood?</label>
+          <textarea id="maNotice"></textarea>
+          <div class="savebar">
+            <button class="btn small" onclick="saveMorning()">Save check</button>
+            <span class="saved-flash" id="flash-morning">Saved</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MORNING: Intention -->
+      <div class="ritual" data-ritual="intention">
+        <button class="head" onclick="toggleRitual(this)">
+          <span class="dot" id="dot-intention"></span>
+          <span><span class="ttl">Set your intention</span><span class="when">Morning</span></span>
+          <span class="chev">&#8964;</span>
+        </button>
+        <div class="body">
+          <label class="field">What is my drinking intention today?</label>
+          <div class="chips" id="intentionGoal"></div>
+          <label class="field">Why does this intention matter today?</label>
+          <textarea id="intentionWhy" placeholder="A word or two is plenty"></textarea>
+          <label class="field">What might make this hard?</label>
+          <textarea id="intentionHard"></textarea>
+          <label class="field">What support or strategy will I use?</label>
+          <textarea id="intentionStrategy"></textarea>
+          <div class="savebar">
+            <button class="btn small" onclick="saveIntention()">Save intention</button>
+            <span class="saved-flash" id="flash-intention">Saved</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MIDDAY: Check-in -->
+      <div class="ritual" data-ritual="checkin">
+        <button class="head" onclick="toggleRitual(this)">
+          <span class="dot" id="dot-checkin"></span>
+          <span><span class="ttl">Check in</span><span class="when">Midday or before evening</span></span>
+          <span class="chev">&#8964;</span>
+        </button>
+        <div class="body">
+          <label class="field">What do I need right now? <span style="font-weight:400;color:var(--muted-text)">(pick any)</span></label>
+          <div class="chips" id="checkinNeed"></div>
+          <div id="altSuggestions"></div>
+          <label class="field">Anything you want to note? <span style="font-weight:400;color:var(--muted-text)">(optional)</span></label>
+          <textarea id="checkinNote" placeholder="A thought, a craving, what's going on right now"></textarea>
+          <div class="savebar">
+            <button class="btn small" onclick="saveCheckin()">Save check-in</button>
+            <span class="saved-flash" id="flash-checkin">Saved</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- EVENING: Reflection (now holds the exercise question) -->
+      <div class="ritual" data-ritual="evening">
+        <button class="head" onclick="toggleRitual(this)">
+          <span class="dot" id="dot-evening"></span>
+          <span><span class="ttl">Evening reflection</span><span class="when">End of day</span></span>
+          <span class="chev">&#8964;</span>
+        </button>
+        <div class="body">
+          <label class="field">Did I follow my intention?</label>
+          <div class="chips" id="eveFollowed"></div>
+
+          <label class="field">Total drinks today</label>
+          <input type="number" id="eveTotal" min="0" step="1" placeholder="0" />
+          <p class="hint">Fills in from your log; adjust if needed.</p>
+
+          <label class="field">Mood tonight (1&ndash;10) <span id="eveMoodVal" style="color:var(--teal-deep);font-weight:700;">not set</span></label>
+          <input type="range" id="eveMood" min="1" max="10" step="1" />
+
+          <label class="field">Did I exercise today? &#127939;</label>
+          <div class="chips" id="eveExercise"></div>
+
+          <label class="field">Used THC today? &#127811;</label>
+          <div class="chips" id="eveThc"></div>
+
+          <label class="field">Night potion? &#127769; <span style="font-weight:400;color:var(--muted-text)">(magnesium)</span></label>
+          <div class="chips" id="evePotion"></div>
+
+          <label class="field" id="eveValueQ">How did today's choice support your values?</label>
+          <p class="hint" id="eveValueReminder" style="margin:0 0 8px;"></p>
+          <textarea id="eveValue"></textarea>
+
+          <label class="field">What helped?</label>
+          <textarea id="eveHelped"></textarea>
+          <label class="field">What got in the way?</label>
+          <textarea id="eveHindered"></textarea>
+          <label class="field">One sentence of self-compassion</label>
+          <textarea id="eveCompassion" placeholder="Speak to yourself the way you'd speak to a friend"></textarea>
+
+          <div class="savebar">
+            <button class="btn small" onclick="saveEvening()">Save reflection</button>
+            <span class="saved-flash" id="flash-evening">Saved</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="footnote">Cutting back too fast can be unsafe. See the safety note in Settings.</p>
+    </section>
+
+    <!-- ============================= LOG ============================= -->
+    <section class="panel" id="tab-log">
+      <h1>Log</h1>
+      <p class="hint" id="logDateNote" style="margin:-8px 2px 12px;"></p>
+      <div class="card">
+        <h2>Log a drink</h2>
+        <p class="sub">Noticing without judging is the whole skill.</p>
+
+        <label class="field">Time started</label>
+        <input type="text" id="dTime" />
+        <p class="hint">When you started this drink. The estimate uses the exact time it's saved.</p>
+
+        <label class="field">Type of drink</label>
+        <input type="text" id="dType" placeholder="e.g. glass of red, IPA, cocktail" />
+
+        <label class="field">Size and strength <span style="font-weight:400;color:var(--muted-text)">(optional, sharpens the estimate)</span></label>
+        <div style="display:flex; gap:8px;">
+          <input type="number" id="dOz" min="0" step="0.5" placeholder="oz" style="flex:1;" />
+          <input type="number" id="dAbv" min="0" max="100" step="0.5" placeholder="% alcohol" style="flex:1;" />
+        </div>
+        <p class="hint">Rough guides: beer ~5%, wine ~12%, spirits ~40%. Left blank, one drink is assumed.</p>
+
+        <label class="field">What need did I think it would meet? <span style="font-weight:400;color:var(--muted-text)">(pick any)</span></label>
+        <div class="chips" id="dNeed"></div>
+
+        <label class="field">Did it align with today's intention?</label>
+        <div class="chips" id="dAligned"></div>
+
+        <label class="field">Note (optional)</label>
+        <textarea id="dNote"></textarea>
+
+        <div class="savebar"><button class="btn block" onclick="logDrink()">Add to log</button></div>
+        <div id="logGentle"></div>
+      </div>
+
+      <div class="card">
+        <h2>Today's log</h2>
+        <p class="sub" id="logCount"></p>
+        <div id="drinkList"></div>
+      </div>
+
+      <div class="card">
+        <h2>Estimated level</h2>
+        <p class="sub">A rough sense of where your body might be right now, from today's log.</p>
+        <div id="bacBox"></div>
+        <div class="safety" style="margin-top:12px;">
+          This is an <b>estimate</b>, not a measurement. It uses the standard Widmark
+          formula with the times you logged. Real levels depend on food, hydration,
+          medications, and your own body. <b>Never use this to decide whether to drive</b>
+          or operate anything. When in doubt, don't.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= INSIGHTS ============================= -->
+    <section class="panel" id="tab-insights">
+      <h1>Insights</h1>
+
+      <div class="stat-grid" style="margin-bottom:6px;">
+        <div class="stat"><div class="num" id="statToday">0</div><div class="lbl">drinks today</div></div>
+        <div class="stat"><div class="num" id="statWeek">0</div><div class="lbl">drinks this week</div></div>
+        <div class="stat"><div class="num" id="statAvg">0</div><div class="lbl">your weekly average</div></div>
+        <div class="stat"><div class="num" id="statPassed">0</div><div class="lbl">drinks passed</div></div>
+      </div>
+      <p class="hint" id="passedNote" style="margin:6px 2px 14px;"></p>
+
+      <div class="card"><h2>Drinks per day</h2><p class="sub">Last 14 days</p><div class="chart-wrap"><canvas id="chartDaily"></canvas></div></div>
+      <div class="card"><h2>Drinks per week</h2><p class="sub">Last 8 weeks</p><div class="chart-wrap"><canvas id="chartWeekly"></canvas></div></div>
+
+      <div class="card">
+        <h2>The day after</h2>
+        <p class="sub">What follows a drinking night, next to what follows an alcohol-free one.</p>
+        <div id="dayAfterBox"></div>
+      </div>
+
+      <div class="card">
+        <h2>Alternatives &amp; supports</h2>
+        <p class="sub">How your THC and night potion use is tracking.</p>
+        <div id="altUseBox"></div>
+      </div>
+    </section>
+
+    <!-- ============================= DAYS (milestones) ============================= -->
+    <section class="panel" id="tab-days">
+      <h1>Days</h1>
+      <div class="stat-grid" style="margin-bottom:14px;">
+        <div class="stat"><div class="num" id="afStreak">0</div><div class="lbl">current alcohol-free streak</div></div>
+        <div class="stat"><div class="num" id="afBest">0</div><div class="lbl">longest streak</div></div>
+        <div class="stat"><div class="num" id="afTotal">0</div><div class="lbl">total alcohol-free days</div></div>
+        <div class="stat"><div class="num" id="afWaves">0</div><div class="lbl">urges ridden out</div></div>
+      </div>
+      <div class="card">
+        <h2>Calendar</h2>
+        <p class="sub">Tap a day to open and edit it.</p>
+        <div class="cal-head">
+          <button class="dnav" onclick="calMonth(-1)" aria-label="Previous month">&#8249;</button>
+          <div id="calTitle"></div>
+          <button class="dnav" onclick="calMonth(1)" aria-label="Next month">&#8250;</button>
+        </div>
+        <div id="calGrid" class="cal-grid"></div>
+        <div class="cal-legend">
+          <span><i style="background:#dcebe9"></i>Alcohol-free</span>
+          <span><i style="background:#f3dcea"></i>Drinking day</span>
+          <span><i style="background:#f0f1f3"></i>Missed</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Badges</h2>
+        <p class="sub">Earned by total alcohol-free days. A quieter day never resets them.</p>
+        <div id="badgeList"></div>
+      </div>
+    </section>
+
+    <!-- ============================= VALUES ============================= -->
+    <section class="panel" id="tab-values">
+      <h1>Values</h1>
+
+      <div class="card">
+        <h2>Why I'm cutting back</h2>
+        <p class="sub">Your reasons, in your own words. This shows up in the urge pause, right when the reminder helps most.</p>
+        <textarea id="whyText" placeholder="e.g. I want clear mornings to run, to be present for my kids, and to feel proud when I wake up."></textarea>
+        <div class="savebar"><button class="btn small" onclick="saveWhy()">Save</button><span class="saved-flash" id="flash-why">Saved</span></div>
+      </div>
+
+      <div class="card">
+        <h2>Your values</h2>
+        <p class="sub">What you're moving toward. These appear under your evening reflection and inside the urge pause.</p>
+        <div id="valueList"></div>
+        <button class="btn ghost small" onclick="addValue()">+ Add a value</button>
+        <div class="savebar">
+          <button class="btn small plum" onclick="saveValues()">Save values</button>
+          <span class="saved-flash" id="flash-values">Saved</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= SETTINGS ============================= -->
+    <section class="panel" id="tab-settings">
+      <h1>Settings</h1>
+
+      <div class="card">
+        <h2>About you</h2>
+        <p class="sub">Used only for the estimated-level calculation on the Log tab. Stays on this device.</p>
+        <label class="field">Age (optional)</label>
+        <input type="number" id="setAge" min="0" step="1" />
+        <p class="hint">Stored for your reference. The standard estimate uses weight and sex, not age.</p>
+        <label class="field">Sex (used for the estimate)</label>
+        <div class="chips" id="setSex"></div>
+        <label class="field">Body weight</label>
+        <div style="display:flex; gap:8px;">
+          <input type="number" id="setWeight" min="0" step="1" style="flex:1;" placeholder="0" />
+          <select id="setUnit" style="width:84px; flex:0 0 auto;">
+            <option value="lb">lb</option><option value="kg">kg</option>
+          </select>
+        </div>
+        <div class="savebar"><button class="btn small" onclick="saveProfile()">Save</button><span class="saved-flash" id="flash-profile">Saved</span></div>
+      </div>
+
+      <div class="card">
+        <h2>Typical week</h2>
+        <p class="sub">Your usual drinks in a week. Powers the "drinks passed" number on Insights.</p>
+        <label class="field">Typical drinks per week</label>
+        <input type="number" id="setBaseline" min="0" step="1" />
+        <div class="savebar"><button class="btn small" onclick="saveSettings()">Save</button><span class="saved-flash" id="flash-settings">Saved</span></div>
+      </div>
+
+      <div class="card">
+        <h2>Your data</h2>
+        <p class="sub">Everything stays in this browser. Back it up so a cleared cache or a new phone never costs you your history.</p>
+        <button class="btn block" onclick="exportData()">Export a backup file</button>
+        <div style="height:10px;"></div>
+        <button class="btn ghost block" onclick="document.getElementById('importFile').click()">Import a backup file</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)" />
+        <div style="height:10px;"></div>
+        <button class="btn ghost block" onclick="exportCSV()">Export as CSV (for spreadsheets)</button>
+        <div style="height:10px;"></div>
+        <button class="btn ghost block" style="color:var(--berry);border-color:#ecd7e6;" onclick="resetData()">Erase all data</button>
+      </div>
+
+      <div class="card">
+        <h2>A note on safety</h2>
+        <div class="safety">
+          <b>If cutting back causes withdrawal symptoms</b> such as shaking, sweating, confusion,
+          rapid heartbeat, severe anxiety, hallucinations, or seizures, seek medical help.
+          This app is not medical treatment.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <button class="urge-fab" onclick="openUrge()">Having an urge?</button>
+
+  <nav class="tabs">
+    <button data-tab="today"    aria-current="true" onclick="switchTab('today')"><span class="ic">&#9719;</span>Today</button>
+    <button data-tab="log"      onclick="switchTab('log')"><span class="ic">+</span>Log</button>
+    <button data-tab="insights" onclick="switchTab('insights')"><span class="ic">&#9637;</span>Insights</button>
+    <button data-tab="days"     onclick="switchTab('days')"><span class="ic">&#9728;</span>Days</button>
+    <button data-tab="values"   onclick="switchTab('values')"><span class="ic">&#10070;</span>Values</button>
+    <button data-tab="settings" onclick="switchTab('settings')"><span class="ic">&#9881;</span>Settings</button>
+  </nav>
+
+  <!-- Urge pause sheet. Tapping the dark area or the X closes it. -->
+  <div class="overlay" id="urgeOverlay" onclick="if(event.target===this) dismissUrge()">
+    <div class="sheet">
+      <button class="sheet-close" onclick="dismissUrge()" aria-label="Close">&times;</button>
+      <div class="grip"></div>
+      <h2>Pause</h2>
+      <p class="sub" style="color:var(--muted-text);font-size:13.5px;margin-top:0;">An urge is a wave. You don't have to act on it. Let's ride it out together.</p>
+      <p class="urge-line">I notice I'm having the thought that I want a drink.</p>
+      <div id="urgeWhy" class="gentle" style="display:none;"></div>
+
+      <div class="breath-zone">
+        <div class="breath" id="breathCircle">Breathe</div>
+        <div class="timer" id="urgeTimer">2:00</div>
+        <div style="margin-top:10px;"><button class="btn small" id="breathBtn" onclick="toggleBreath()">Start 2-minute breath</button></div>
+      </div>
+
+      <label class="field">What is this urge trying to give me?</label>
+      <textarea id="urgeNeed"></textarea>
+      <label class="field">Will drinking move me toward or away from the person I want to be today?</label>
+      <div class="toward-away" id="urgeDirection"></div>
+      <label class="field">One 5-minute action I can take before deciding</label>
+      <input type="text" id="urgeAction" placeholder="e.g. step outside, make tea, text someone" />
+
+      <div class="savebar"><button class="btn block" onclick="rideWave()">I've ridden the wave</button></div>
+      <p class="footnote" style="margin-top:10px;">Whatever you choose next, you showed up and paused. That counts.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   === EDIT YOUR PROMPTS & SUGGESTIONS HERE ===
+   ============================================================ */
+const INTENTION_OPTIONS = ["No drinks", "Flexible but mindful", "Special occasion"];
+
+const NEED_OPTIONS = ["Relaxation","Reward","Stimulation","Connection","Transition from work mode","Boredom relief","Emotional relief","Stress relief"];
+
+const ALTERNATIVES = {
+  "Relaxation": ["Take a shower or bath","5-minute breathing exercise","Put on pajamas and make tea"],
+  "Reward": ["Make a fancy nonalcoholic drink","Watch one episode of something you love","Make or order a favorite treat"],
+  "Stimulation": ["Play a puzzle or game","Go for a short walk","Start a small creative task"],
+  "Connection": ["Text a friend","Sit with family without multitasking","Send a quick voice memo"],
+  "Transition from work mode": ["Change clothes and step outside","Do a 5-minute tidy of your space","Take a short walk to mark the shift"],
+  "Boredom relief": ["Start a 10-minute task you've been avoiding","Pick up an instrument or sketchbook","Step outside and move your body"],
+  "Emotional relief": ["Name the feeling out loud or on paper","Do a short grounding exercise","Reach out to someone you trust"],
+  "Stress relief": ["Take ten slow breaths or a short meditation","Step outside for air and a short walk","Stretch, roll your shoulders, or do a quick body scan"]
+};
+
+const FOLLOWED_OPTIONS  = ["Yes","Mostly","No, but I learned something"];
+const FEEL_OPTIONS = ["Energized","Tired","Headache","Refreshed","Poor sleep","Anxious","Proud","Motivated","Unmotivated"];
+const EXERCISE_OPTIONS   = ["Yes","No"];
+const ALIGNED_OPTIONS    = ["On-plan","Off-plan","Not sure"];
+const DIRECTION_OPTIONS  = ["Toward","Away"];
+const SEX_OPTIONS        = ["Female","Male"];
+
+const DEFAULT_VALUES = ["Health","Parenting","Running/fitness","Clarity","Creativity","Work","Relationships","Personal growth"];
+
+// Badge thresholds, counted in TOTAL alcohol-free days. Edit freely.
+const AF_MILESTONES = [
+  {n:1,  label:"First alcohol-free day"},
+  {n:2,  label:"Two days"},
+  {n:3,  label:"Three days"},
+  {n:5,  label:"Five days"},
+  {n:7,  label:"A full week's worth"},
+  {n:10, label:"Ten days"},
+  {n:14, label:"Two weeks"},
+  {n:21, label:"Three weeks"},
+  {n:30, label:"A month's worth"},
+  {n:60, label:"Sixty days"},
+  {n:90, label:"Ninety days"}
+];
+
+/* ============================================================ STATE + STORAGE */
+const STORAGE_KEY = "mindful_pace_v1";
+
+function blankState(){
+  return {
+    settings: { weeklyBaseline: 25 },
+    profile: { age:null, sex:null, weight:null, unit:"lb" },
+    why: "",                       // "why I'm cutting back", shown in the urge pause
+    feelCustom: [],                // feelings you add yourself, on top of the defaults
+    values: DEFAULT_VALUES.slice(),
+    days: {}
+  };
+}
+let state = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return blankState();
+    return Object.assign(blankState(), JSON.parse(raw));
+  }catch(e){ console.warn("Could not read saved data, starting fresh.", e); return blankState(); }
+}
+function save(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){ alert("Your browser blocked saving. Data won't persist until that's fixed."); }
+}
+
+/* ============================================================ DATES */
+function dateKey(d){
+  d = d || new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+const TODAY = dateKey();
+let activeDate = TODAY;                         // the day the Today tab + Log are showing
+function day(key){ key = key || activeDate; if(!state.days[key]) state.days[key] = {}; return state.days[key]; } // for WRITES (creates the day)
+function getDay(key){ return state.days[key || activeDate] || {}; }                                              // for READS (never creates)
+function prettyDate(){ return new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"}); }
+function prettyKey(key){ const p=key.split("-").map(Number); return new Date(p[0],p[1]-1,p[2]).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"}); }
+function shiftKey(key, delta){
+  const p = key.split("-").map(Number);
+  const dt = new Date(p[0], p[1]-1, p[2]); dt.setDate(dt.getDate()+delta); return dateKey(dt);
+}
+
+/* ============================================================ UI HELPERS */
+// single-select chips
+function buildChips(id, options, selected, onPick, warm){
+  const c = document.getElementById(id); c.innerHTML = "";
+  options.forEach(opt => {
+    const b = document.createElement("button");
+    b.className = "chip" + (warm?" warm":"");
+    b.textContent = opt;
+    b.setAttribute("aria-pressed", selected===opt ? "true":"false");
+    b.onclick = () => { [...c.children].forEach(ch=>ch.setAttribute("aria-pressed","false")); b.setAttribute("aria-pressed","true"); onPick(opt); };
+    c.appendChild(b);
+  });
+}
+// multi-select chips (toggle on/off, keeps an array)
+function buildMultiChips(id, options, selected, onChange, warm){
+  const c = document.getElementById(id); c.innerHTML = "";
+  selected = selected || [];
+  options.forEach(opt => {
+    const b = document.createElement("button");
+    b.className = "chip" + (warm?" warm":"");
+    b.textContent = opt;
+    b.setAttribute("aria-pressed", selected.includes(opt) ? "true":"false");
+    b.onclick = () => {
+      const i = selected.indexOf(opt);
+      if(i>=0) selected.splice(i,1); else selected.push(opt);
+      b.setAttribute("aria-pressed", selected.includes(opt) ? "true":"false");
+      onChange(selected);
+    };
+    c.appendChild(b);
+  });
+}
+function flash(id){ const el=document.getElementById(id); if(!el) return; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),1400); }
+function val(id){ return document.getElementById(id).value.trim(); }
+function setVal(id,v){ const el=document.getElementById(id); if(el) el.value=(v==null?"":v); }
+function escapeHtml(s){ return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+/* ============================================================ TABS */
+function switchTab(name){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("tab-"+name).classList.add("active");
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===name?"true":"false"));
+  if(name==="insights") renderInsights();
+  if(name==="days")     renderDays();
+  if(name==="values")   renderValues();
+  if(name==="log")      { updateLogDate(); renderDrinkList(); }
+  window.scrollTo(0,0);
+}
+function toggleRitual(headBtn){ headBtn.parentElement.classList.toggle("open"); }
+
+/* ============================================================ DATE NAVIGATION */
+// activeDate is the day Today + Log operate on. These move it around.
+function setActiveDate(key){
+  if(key > TODAY) key = TODAY;            // no future days
+  activeDate = key;
+  const di = document.getElementById("dateInput");
+  if(di){ di.value = key; di.max = TODAY; }
+  document.getElementById("dateNext").disabled = (key === TODAY);
+  // banner only when you're not on today
+  const banner = document.getElementById("dateBanner");
+  banner.innerHTML = (key === TODAY) ? "" :
+    '<span class="b">Viewing ' + prettyKey(key) + ' <button onclick="setActiveDate(TODAY)">Back to today</button></span>';
+  // re-render everything tied to the day
+  renderMorning(); renderIntention(); renderCheckin(); renderEvening();
+  renderLogForm(); updateLogDate();
+}
+function stepDate(delta){ setActiveDate(shiftKey(activeDate, delta)); }
+function jumpDate(value){ if(value) setActiveDate(value); }
+function updateLogDate(){
+  const note = document.getElementById("logDateNote");
+  if(note) note.textContent = (activeDate===TODAY) ? "Logging for today." : "Logging for " + prettyKey(activeDate) + ". Change the day on the Today tab.";
+}
+
+/* ============================================================ CALENDAR (Days tab) */
+let calCursor = new Date(); calCursor.setDate(1);   // first of the shown month
+function calMonth(delta){ calCursor.setMonth(calCursor.getMonth()+delta); renderCalendar(); }
+function renderCalendar(){
+  const grid = document.getElementById("calGrid");
+  const title = document.getElementById("calTitle");
+  if(!grid) return;
+  const year = calCursor.getFullYear(), month = calCursor.getMonth();
+  title.textContent = calCursor.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  let html = ["S","M","T","W","T","F","S"].map(d=>'<div class="cal-dow">'+d+'</div>').join("");
+  const first = new Date(year, month, 1);
+  const startPad = first.getDay();                 // blanks before day 1
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  for(let i=0;i<startPad;i++) html += '<div class="cal-cell empty"></div>';
+  for(let dnum=1; dnum<=daysInMonth; dnum++){
+    const key = dateKey(new Date(year, month, dnum));
+    let cls = "cal-cell", click = "";
+    if(key > TODAY){ cls += " future"; }
+    else {
+      if(hasEngagement(state.days[key])) cls += (drinkCount(key)===0) ? " af" : " drank";
+      else if(key < TODAY) cls += " missed";        // a past day with nothing = missed
+      if(key === TODAY) cls += " today";
+      click = ' onclick="openDay(\''+key+'\')"';
+    }
+    html += '<div class="'+cls+'"'+click+'>'+dnum+'</div>';
+  }
+  grid.innerHTML = html;
+}
+function openDay(key){ setActiveDate(key); switchTab("today"); }
+
+/* ============================================================ INTENTION */
+let pickIntention = null;
+function renderIntention(){
+  const d = getDay(activeDate);
+  pickIntention = d.intention ? d.intention.goal : null;
+  buildChips("intentionGoal", INTENTION_OPTIONS, pickIntention, v=>pickIntention=v);
+  setVal("intentionWhy", d.intention?d.intention.why:""); setVal("intentionHard", d.intention?d.intention.hard:""); setVal("intentionStrategy", d.intention?d.intention.strategy:"");
+  setDot("intention", !!(d.intention && d.intention.goal));
+}
+function saveIntention(){
+  day(activeDate).intention = { goal:pickIntention, why:val("intentionWhy"), hard:val("intentionHard"), strategy:val("intentionStrategy") };
+  save(); flash("flash-intention"); setDot("intention", !!pickIntention);
+}
+
+/* ============================================================ CHECK-IN */
+let pickNeeds = [];
+function renderCheckin(){
+  const c = getDay(activeDate).checkin || {};
+  // accept old single .need data too
+  pickNeeds = Array.isArray(c.needs) ? c.needs.slice() : (c.need ? [c.need] : []);
+  buildMultiChips("checkinNeed", NEED_OPTIONS, pickNeeds, a=>{ pickNeeds=a; showAlternatives(pickNeeds); });
+  showAlternatives(pickNeeds);
+  setVal("checkinNote", c.note);
+  setDot("checkin", pickNeeds.length>0);
+}
+function showAlternatives(needs){
+  const box = document.getElementById("altSuggestions");
+  if(!needs || !needs.length){ box.innerHTML=""; return; }
+  let html = '<div class="gentle">';
+  needs.forEach(n=>{
+    const list = ALTERNATIVES[n] || [];
+    if(list.length) html += '<b>'+escapeHtml(n)+':</b><ul style="margin:4px 0 10px;padding-left:18px;">'+list.map(x=>"<li>"+x+"</li>").join("")+'</ul>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+function saveCheckin(){ day(activeDate).checkin={ needs:pickNeeds.slice(), note:val("checkinNote") }; save(); flash("flash-checkin"); setDot("checkin", pickNeeds.length>0); }
+
+/* ============================================================ EVENING */
+let pickFollowed = null;
+let pickEveExercise = null;
+let pickThc = null;
+let pickPotion = null;
+let eveMoodTouched = false;
+function renderEvening(){
+  const d = getDay(activeDate); const e = d.evening || {};
+  pickFollowed = e.followed || null;
+  pickEveExercise = e.exercise || null;
+  pickThc = e.thc || null;
+  pickPotion = e.potion || null;
+  buildChips("eveFollowed", FOLLOWED_OPTIONS, pickFollowed, v=>pickFollowed=v);
+  buildChips("eveExercise", EXERCISE_OPTIONS, pickEveExercise, v=>pickEveExercise=v);
+  buildChips("eveThc", EXERCISE_OPTIONS, pickThc, v=>pickThc=v);
+  buildChips("evePotion", EXERCISE_OPTIONS, pickPotion, v=>pickPotion=v);
+  setVal("eveTotal", e.total!=null ? e.total : (d.drinks?d.drinks.length:0));
+  // mood is a slider; only saved if you actually move it, so it stays optional
+  eveMoodTouched = (e.mood!=null);
+  const ms = document.getElementById("eveMood");
+  ms.value = e.mood!=null ? e.mood : 5;
+  ms.oninput = function(){ eveMoodTouched=true; document.getElementById("eveMoodVal").textContent=this.value; };
+  document.getElementById("eveMoodVal").textContent = e.mood!=null ? e.mood : "not set";
+  setVal("eveValue", e.value);
+  setVal("eveHelped", e.helped); setVal("eveHindered", e.hindered);
+  setVal("eveCompassion", e.compassion);
+  document.getElementById("eveValueReminder").innerHTML = valuesReminderText();
+  setDot("evening", !!e.followed);
+}
+// Lists the user's own values under the evening question, as a reminder.
+function valuesReminderText(){
+  const list = (state.values||[]).filter(Boolean);
+  if(!list.length) return "Add your values on the Values tab and they'll show here.";
+  return "Your values: " + list.join(" &middot; ");
+}
+function saveEvening(){
+  day(activeDate).evening = {
+    followed:pickFollowed,
+    total: val("eveTotal")===""?null:Number(val("eveTotal")),
+    mood: eveMoodTouched ? Number(document.getElementById("eveMood").value) : null,
+    exercise: pickEveExercise,
+    thc: pickThc,
+    potion: pickPotion,
+    value:val("eveValue"), helped:val("eveHelped"), hindered:val("eveHindered"),
+    compassion:val("eveCompassion")
+  };
+  save(); flash("flash-evening"); setDot("evening", !!pickFollowed);
+}
+
+/* ============================================================ MORNING-AFTER (no exercise now) */
+let pickPhysical = [];
+function renderMorning(){
+  const m = getDay(activeDate).morning || {};
+  // accept old single-string data too, so nothing breaks
+  pickPhysical = Array.isArray(m.physical) ? m.physical.slice() : (m.physical ? [m.physical] : []);
+  renderFeelChips();
+  setVal("maRhr", m.rhr); setVal("maNotice", m.notice);
+  setDot("morning", pickPhysical.length>0);
+}
+// Chips = built-in feelings + the ones you've added. Adds persist across days.
+function renderFeelChips(){
+  const combined = FEEL_OPTIONS.concat(state.feelCustom || []);
+  buildMultiChips("maPhysical", combined, pickPhysical, a=>pickPhysical=a);
+  const cw = document.getElementById("maFeelCustom");
+  const customs = state.feelCustom || [];
+  if(!customs.length){ cw.innerHTML=""; return; }
+  cw.innerHTML = '<span style="font-size:12px;color:var(--muted-text)">Your added: </span>' +
+    customs.map((f,i)=>'<span style="display:inline-flex;align-items:center;gap:2px;background:#eef0f3;border-radius:999px;padding:3px 4px 3px 10px;font-size:12.5px;margin:2px;">'+escapeHtml(f)+'<button class="remove" style="font-size:14px;padding:0 4px;" onclick="removeFeeling('+i+')">&times;</button></span>').join("");
+}
+function addFeeling(){
+  const v = val("maFeelNew"); if(!v) return;
+  if(!state.feelCustom) state.feelCustom = [];
+  const exists = FEEL_OPTIONS.concat(state.feelCustom).some(x=>x.toLowerCase()===v.toLowerCase());
+  if(!exists){ state.feelCustom.push(v); save(); }
+  setVal("maFeelNew",""); renderFeelChips();
+}
+function removeFeeling(i){
+  const removed = state.feelCustom[i];
+  state.feelCustom.splice(i,1);
+  const sel = pickPhysical.indexOf(removed); if(sel>=0) pickPhysical.splice(sel,1);
+  save(); renderFeelChips();
+}
+function saveMorning(){
+  day(activeDate).morning = { physical:pickPhysical.slice(), rhr: val("maRhr")===""?null:Number(val("maRhr")), notice:val("maNotice") };
+  save(); flash("flash-morning"); setDot("morning", pickPhysical.length>0);
+}
+function setDot(name,done){ const el=document.getElementById("dot-"+name); if(el) el.classList.toggle("done",!!done); }
+
+/* ============================================================ LOG */
+let logNeeds = [];
+let logAligned = null;
+function renderLogForm(){
+  const now = new Date();
+  setVal("dTime", now.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}));
+  setVal("dType",""); setVal("dOz",""); setVal("dAbv",""); setVal("dNote","");
+  logNeeds = []; logAligned = null;
+  buildMultiChips("dNeed", NEED_OPTIONS, logNeeds, a=>logNeeds=a);
+  buildChips("dAligned", ALIGNED_OPTIONS, null, v=>logAligned=v, true);
+  renderDrinkList();
+}
+function logDrink(){
+  const d = day(activeDate); if(!d.drinks) d.drinks=[];
+  d.drinks.push({
+    time: val("dTime") || new Date().toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}),
+    ts: Date.now(),
+    sizeOz: val("dOz")===""?null:Number(val("dOz")),
+    abv: val("dAbv")===""?null:Number(val("dAbv")),
+    type: val("dType"),
+    needs: logNeeds.slice(),
+    aligned: logAligned,
+    note: val("dNote")
+  });
+  save();
+  document.getElementById("logGentle").innerHTML =
+    '<div class="gentle">Logged. Two soft questions, no wrong answers:' +
+    '<br>&bull; Is this still aligned with today\'s plan?' +
+    '<br>&bull; Do you want the next choice to be the same, or different?</div>';
+  setVal("dType",""); setVal("dOz",""); setVal("dAbv",""); setVal("dNote","");
+  logNeeds = []; buildMultiChips("dNeed", NEED_OPTIONS, logNeeds, a=>logNeeds=a);
+  renderDrinkList();
+}
+function renderDrinkList(){
+  const d = getDay(activeDate); const list = d.drinks || [];
+  document.getElementById("logCount").textContent =
+    list.length===0 ? "Nothing logged for this day." : list.length+(list.length===1?" drink logged":" drinks logged");
+  document.getElementById("drinkList").innerHTML = list.map((dr,i)=>{
+    const tagClass = dr.aligned==="On-plan"?"on":dr.aligned==="Off-plan"?"off":"unsure";
+    const size = (dr.sizeOz?dr.sizeOz+"oz":"") + (dr.abv?(dr.sizeOz?" ":"")+dr.abv+"%":"");
+    const needs = (dr.needs&&dr.needs.length)?dr.needs.join(", "):(dr.need||"");
+    return '<div class="drink-row">'+
+      '<div class="time">'+(dr.time||"")+'</div>'+
+      '<div class="meta">'+(dr.type||"Drink")+(size?' &middot; '+size:'')+
+        (needs?'<br><small>Need: '+escapeHtml(needs)+'</small>':'')+
+        (dr.note?'<br><small>'+escapeHtml(dr.note)+'</small>':'')+
+        (dr.aligned?'<br><span class="tag '+tagClass+'">'+dr.aligned+'</span>':'')+
+      '</div>'+
+      '<button class="remove" title="Remove" onclick="removeDrink('+i+')">&times;</button>'+
+    '</div>';
+  }).join("");
+  renderBAC();
+}
+function removeDrink(i){ const d=day(activeDate); if(d.drinks){ d.drinks.splice(i,1); save(); renderDrinkList(); } }
+
+/* ---- Estimated level (Widmark). Rough awareness aid, not a measurement. ---- */
+function drinkGrams(d){
+  // grams of pure alcohol from size + strength, else fall back to ~1 standard drink
+  if(d.sizeOz!=null && d.abv!=null){ return d.sizeOz * 29.5735 * (d.abv/100) * 0.789; }
+  return 14;
+}
+function computeBAC(){
+  const p = state.profile || {};
+  if(!p.weight || !p.sex) return { needProfile:true };
+  const drinks = (getDay(activeDate).drinks||[]).filter(d=>d.ts);
+  if(!drinks.length) return { bac:0 };
+  const weightKg = (p.unit==="kg") ? p.weight : p.weight*0.453592;
+  const weightG  = weightKg*1000;
+  const r = (p.sex==="Male") ? 0.68 : 0.55;
+  const totalGrams = drinks.reduce((s,d)=>s+drinkGrams(d),0);
+  const firstTs = Math.min.apply(null, drinks.map(d=>d.ts));
+  const hours = Math.max(0,(Date.now()-firstTs)/3600000);
+  const peak = (totalGrams/(weightG*r))*100;
+  return { bac: Math.max(0, peak - 0.015*hours) };
+}
+function renderBAC(){
+  const box = document.getElementById("bacBox"); if(!box) return;
+  if(activeDate !== TODAY){ box.innerHTML='<p class="hint">The level estimate only applies to today.</p>'; return; }
+  const res = computeBAC();
+  if(res.needProfile){ box.innerHTML='<p class="hint">Add your weight and sex in Settings to see an estimate.</p>'; return; }
+  const v = res.bac;
+  const color = v<=0 ? "var(--teal-deep)" : "var(--berry)";
+  const note  = v<=0 ? "estimated, from today's log" : "rough estimate right now";
+  box.innerHTML = '<div style="text-align:center;padding:6px 0;"><div style="font-family:var(--serif);font-size:34px;font-weight:700;color:'+color+';">'+v.toFixed(3)+'%</div><div style="font-size:12px;color:var(--muted-text);margin-top:2px;">'+note+'</div></div>';
+}
+
+/* ============================================================ DRINK COUNTS + AF DAYS */
+function drinkCount(key){
+  const d = state.days[key]; if(!d) return 0;
+  if(d.evening && d.evening.total!=null) return d.evening.total;
+  return d.drinks ? d.drinks.length : 0;
+}
+function hasEngagement(d){ return !!(d && (d.intention||d.checkin||d.evening||d.morning||(d.drinks&&d.drinks.length))); }
+function isAFDay(key){ return hasEngagement(state.days[key]) && drinkCount(key)===0; }
+
+function totalAFDays(){ return Object.keys(state.days).filter(isAFDay).length; }
+function currentAFStreak(){
+  let streak=0; let key=TODAY;
+  if(!hasEngagement(state.days[TODAY])) key = shiftKey(TODAY,-1); // a fresh morning shouldn't break it
+  while(true){
+    const d = state.days[key];
+    if(!hasEngagement(d)) break;   // gap / untracked day -> stop, we can't claim it
+    if(drinkCount(key)>0) break;   // a drinking day -> stop
+    streak++; key = shiftKey(key,-1);
+  }
+  return streak;
+}
+function longestAFStreak(){
+  const afSet = new Set(Object.keys(state.days).filter(isAFDay));
+  let best=0;
+  afSet.forEach(key=>{
+    if(afSet.has(shiftKey(key,-1))) return; // only start counting at the head of a run
+    let len=0, k=key;
+    while(afSet.has(k)){ len++; k=shiftKey(k,1); }
+    best=Math.max(best,len);
+  });
+  return best;
+}
+
+/* ============================================================ INSIGHTS */
+let charts = {};
+function daysAgo(n){ const d=new Date(); d.setDate(d.getDate()-n); return d; }
+
+function weeksTracked(){
+  const keys = Object.keys(state.days).filter(k=>hasEngagement(state.days[k])).sort();
+  if(!keys.length) return 0;
+  const first = new Date(keys[0]);
+  return Math.max(1, Math.round((new Date()-first)/86400000)+1)/7;
+}
+function totalDrinks(){ return Object.keys(state.days).reduce((s,k)=>s+drinkCount(k),0); }
+
+function renderInsights(){
+  document.getElementById("statToday").textContent = drinkCount(TODAY);
+  let week=0; for(let i=0;i<7;i++){ week += drinkCount(dateKey(daysAgo(i))); }
+  document.getElementById("statWeek").textContent = week;
+
+  const w = weeksTracked();
+  const avg = w ? (totalDrinks()/w) : 0;
+  document.getElementById("statAvg").textContent = (Math.round(avg*10)/10);
+
+  const baseline = state.settings.weeklyBaseline||0;
+  const passed = Math.max(0, baseline*w - totalDrinks());
+  document.getElementById("statPassed").textContent = Math.round(passed);
+
+  const note = document.getElementById("passedNote");
+  if(w){
+    note.textContent = "Your typical week is set to "+baseline+". You're averaging about "+(Math.round(avg*10)/10)+" a week, so you've passed on roughly "+Math.round(passed)+" drinks compared to your old pace.";
+  } else {
+    note.textContent = "Log a few days and your average and drinks passed will fill in here.";
+  }
+
+  drawCharts();
+  renderDayAfter();
+  renderAltUse();
+}
+
+// THC (as an alcohol alternative) and night potion (magnesium) usage + signals.
+function renderAltUse(){
+  const box = document.getElementById("altUseBox");
+  const keys = Object.keys(state.days);
+  let thcDays=0, thcAF=0, potionDays=0;
+  keys.forEach(k=>{
+    const e = state.days[k].evening;
+    if(e && e.thc==="Yes"){ thcDays++; if(drinkCount(k)===0) thcAF++; }
+    if(e && e.potion==="Yes") potionDays++;
+  });
+  // night potion -> next morning sleep / resting HR
+  const withP={poor:[],rhr:[]}, withoutP={poor:[],rhr:[]};
+  keys.forEach(k=>{
+    const e = state.days[k].evening;
+    if(!e || e.potion==null) return;            // only days where potion was answered
+    const next = state.days[shiftKey(k,1)];
+    if(!next || !next.morning) return;
+    const grp = e.potion==="Yes" ? withP : withoutP;
+    if(next.morning.rhr!=null) grp.rhr.push(next.morning.rhr);
+    const feels = Array.isArray(next.morning.physical) ? next.morning.physical : (next.morning.physical?[next.morning.physical]:[]);
+    grp.poor.push(feels.includes("Poor sleep") ? 1 : 0);
+  });
+  const fmt = v => v==null ? "&ndash;" : Math.round(v*10)/10;
+  const pct = v => v==null ? "&ndash;" : Math.round(v*100)+"%";
+  let html = "";
+  if(thcDays===0){
+    html += '<p class="hint" style="margin:0 0 10px;">THC: nothing logged yet. Mark it in the evening reflection to track it.</p>';
+  } else {
+    html += '<div style="margin-bottom:12px;"><b>THC &#127811;</b><br>Used on '+thcDays+(thcDays===1?' day':' days')+'. On those nights, '+thcAF+' of '+thcDays+' were alcohol-free.</div>';
+  }
+  if(potionDays===0){
+    html += '<p class="hint" style="margin:0;">Night potion: nothing logged yet.</p>';
+  } else {
+    html += '<div><b>Night potion &#127769;</b><br>Used on '+potionDays+(potionDays===1?' day':' days')+'.';
+    if(withP.rhr.length || withP.poor.length){
+      html += '<br><span style="font-size:13px;color:var(--muted-text)">Morning after potion: poor sleep '+pct(avg(withP.poor))+', resting HR '+fmt(avg(withP.rhr))+'. Without it: poor sleep '+pct(avg(withoutP.poor))+', resting HR '+fmt(avg(withoutP.rhr))+'.</span>';
+    }
+    html += '</div>';
+  }
+  box.innerHTML = html;
+}
+
+function drawCharts(){
+  if(typeof Chart==="undefined") return;
+  Chart.defaults.font.family = "Poppins, -apple-system, sans-serif";
+  Chart.defaults.color = "#6b7480";
+  const accent="#1c626d", accent2="#a83086";
+
+  const dLabels=[], dData=[];
+  for(let i=13;i>=0;i--){ const d=daysAgo(i); dLabels.push(d.toLocaleDateString(undefined,{month:"numeric",day:"numeric"})); dData.push(drinkCount(dateKey(d))); }
+  makeChart("chartDaily","bar",{ labels:dLabels, datasets:[{ data:dData, backgroundColor:accent, borderRadius:6, maxBarThickness:18 }] });
+
+  const wLabels=[], wData=[];
+  for(let wk=7;wk>=0;wk--){ let sum=0; for(let i=0;i<7;i++){ sum+=drinkCount(dateKey(daysAgo(wk*7+i))); } wLabels.push(wk===0?"This wk":wk+"w ago"); wData.push(sum); }
+  makeChart("chartWeekly","bar",{ labels:wLabels, datasets:[{ data:wData, backgroundColor:accent2, borderRadius:6, maxBarThickness:22 }] });
+}
+function makeChart(id,type,data,extra){
+  const el=document.getElementById(id); if(!el) return;
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(el.getContext("2d"),{ type, data, options:Object.assign({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false} },
+    scales:{ y:{ beginAtZero:true, grid:{color:"#eef0f3"}, ticks:{precision:0} }, x:{ grid:{display:false} } }
+  }, extra||{}) });
+}
+
+/* day-after impact: group each day by whether the PREVIOUS night had drinks */
+function dayAfterStats(){
+  const out = { drink:{rhr:[],mood:[],ex:[]}, free:{rhr:[],mood:[],ex:[]} };
+  Object.keys(state.days).forEach(key=>{
+    const prev = shiftKey(key,-1);
+    if(!hasEngagement(state.days[prev])) return;       // need to know the night before
+    const grp = drinkCount(prev)>0 ? "drink":"free";
+    const d = state.days[key];
+    if(d.morning && d.morning.rhr!=null) out[grp].rhr.push(d.morning.rhr);
+    if(d.evening && d.evening.mood!=null) out[grp].mood.push(d.evening.mood);
+    if(d.evening && d.evening.exercise) out[grp].ex.push(d.evening.exercise==="Yes"?1:0);
+  });
+  return out;
+}
+function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
+function renderDayAfter(){
+  const s = dayAfterStats();
+  const box = document.getElementById("dayAfterBox");
+  const total = s.drink.rhr.length+s.drink.mood.length+s.drink.ex.length+s.free.rhr.length+s.free.mood.length+s.free.ex.length;
+  if(total===0){ box.innerHTML='<p class="hint">Keep logging drinks, your morning resting HR, evening mood, and exercise. Once there are a few of each, the comparison appears here.</p>'; return; }
+  const num = v => v==null ? "&ndash;" : (Math.round(v*10)/10);
+  const pct = v => v==null ? "&ndash;" : Math.round(v*100)+"%";
+  const row = (label,a,b) => '<div style="font-weight:600">'+label+'</div><div style="text-align:center">'+a+'</div><div style="text-align:center">'+b+'</div>';
+  box.innerHTML =
+    '<div style="display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:8px 6px;align-items:center;font-size:13.5px;">'+
+      '<div></div>'+
+      '<div style="text-align:center;font-weight:700;color:var(--berry);font-size:11.5px;line-height:1.2;">After<br>drinking</div>'+
+      '<div style="text-align:center;font-weight:700;color:var(--teal-deep);font-size:11.5px;line-height:1.2;">After<br>AF night</div>'+
+      row("Resting HR", num(avg(s.drink.rhr)), num(avg(s.free.rhr)))+
+      row("Mood (/10)", num(avg(s.drink.mood)), num(avg(s.free.mood)))+
+      row("Exercised", pct(avg(s.drink.ex)), pct(avg(s.free.ex)))+
+    '</div>';
+}
+
+/* ============================================================ DAYS / BADGES */
+function renderDays(){
+  renderCalendar();
+  const total = totalAFDays();
+  document.getElementById("afStreak").textContent = currentAFStreak();
+  document.getElementById("afBest").textContent   = longestAFStreak();
+  document.getElementById("afTotal").textContent  = total;
+  document.getElementById("afWaves").textContent  = Object.values(state.days).reduce((s,d)=>s+(d.urgesPaused||0),0);
+  const wrap = document.getElementById("badgeList"); wrap.innerHTML="";
+  AF_MILESTONES.forEach(m=>{
+    const reached = total>=m.n;
+    const row = document.createElement("div"); row.className="milestone";
+    row.innerHTML = '<div class="ms-badge '+(reached?"reached":"")+'">'+m.n+'</div>'+
+      '<div class="ms-text"><div class="t">'+m.label+'</div>'+
+      '<div style="font-size:12.5px;color:var(--muted-text)">'+(reached?"Earned":(m.n-total)+" alcohol-free days to go")+'</div></div>';
+    wrap.appendChild(row);
+  });
+}
+
+/* ============================================================ VALUES */
+function renderValues(){
+  setVal("whyText", state.why);
+  const wrap = document.getElementById("valueList"); wrap.innerHTML="";
+  state.values.forEach((v,i)=>{
+    const row=document.createElement("div"); row.className="value-row";
+    row.innerHTML='<input type="text" value="'+escapeHtml(v)+'" data-i="'+i+'" /><button class="remove" onclick="removeValue('+i+')">&times;</button>';
+    wrap.appendChild(row);
+  });
+}
+function addValue(){ state.values.push(""); renderValues(); }
+function removeValue(i){ state.values.splice(i,1); renderValues(); }
+function saveValues(){
+  state.values = [...document.querySelectorAll("#valueList input")].map(inp=>inp.value.trim()).filter(Boolean);
+  save(); flash("flash-values"); renderValues();
+}
+function saveWhy(){ state.why = val("whyText"); save(); flash("flash-why"); }
+
+/* ============================================================ URGE TOOL */
+let breathTimer=null, breathSeconds=120, breathPhaseTimer=null;
+function openUrge(){
+  document.getElementById("urgeOverlay").classList.add("open");
+  buildChips("urgeDirection", DIRECTION_OPTIONS, null, ()=>{}, true);
+  setVal("urgeNeed",""); setVal("urgeAction","");
+  renderUrgeWhy();
+}
+// Shows the user's "why" and values inside the pause, as the reminder of what they're moving toward.
+function renderUrgeWhy(){
+  const el = document.getElementById("urgeWhy");
+  const why = (state.why||"").trim();
+  const vals = (state.values||[]).filter(Boolean);
+  if(!why && !vals.length){ el.style.display="none"; return; }
+  let html = "";
+  if(why) html += "<b>Your why:</b> " + escapeHtml(why);
+  if(vals.length) html += (why?"<br>":"") + "<b>Moving toward:</b> " + vals.join(" &middot; ");
+  el.innerHTML = html;
+  el.style.display = "block";
+}
+// Closing with the X or the backdrop just dismisses, no count.
+function dismissUrge(){
+  stopBreath();
+  document.getElementById("urgeOverlay").classList.remove("open");
+}
+// "I've ridden the wave" is the one that counts, and it always counts toward today.
+function rideWave(){
+  const d = day(TODAY); d.urgesPaused = (d.urgesPaused||0)+1; save();
+  dismissUrge();
+}
+function toggleBreath(){
+  if(breathTimer){ stopBreath(); return; }
+  breathSeconds=120;
+  document.getElementById("breathBtn").textContent="Stop";
+  const circle=document.getElementById("breathCircle"); let inhale=true;
+  const cycle=()=>{ inhale=!inhale; circle.classList.toggle("inhale",inhale); circle.textContent=inhale?"Breathe in":"Breathe out"; };
+  cycle(); breathPhaseTimer=setInterval(cycle,4000);
+  breathTimer=setInterval(()=>{
+    breathSeconds--;
+    const m=Math.floor(breathSeconds/60), s=breathSeconds%60;
+    document.getElementById("urgeTimer").textContent=m+":"+String(s).padStart(2,"0");
+    if(breathSeconds<=0){ stopBreath(); document.getElementById("breathCircle").textContent="Nicely done"; }
+  },1000);
+}
+function stopBreath(){
+  clearInterval(breathTimer); clearInterval(breathPhaseTimer); breathTimer=null; breathPhaseTimer=null;
+  const btn=document.getElementById("breathBtn"); if(btn) btn.textContent="Start 2-minute breath";
+}
+
+/* ============================================================ SETTINGS + DATA */
+function renderSettings(){ setVal("setBaseline", state.settings.weeklyBaseline); }
+function saveSettings(){ state.settings.weeklyBaseline = Number(val("setBaseline"))||0; save(); flash("flash-settings"); }
+
+let pickSex=null;
+function renderProfile(){
+  const p = state.profile||{};
+  pickSex = p.sex||null;
+  buildChips("setSex", SEX_OPTIONS, pickSex, v=>pickSex=v);
+  setVal("setAge", p.age); setVal("setWeight", p.weight);
+  const u=document.getElementById("setUnit"); if(u) u.value=p.unit||"lb";
+}
+function saveProfile(){
+  state.profile = { age: val("setAge")===""?null:Number(val("setAge")), sex:pickSex, weight: val("setWeight")===""?null:Number(val("setWeight")), unit:document.getElementById("setUnit").value };
+  save(); flash("flash-profile"); renderBAC();
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download="mindful-pace-backup-"+TODAY+".json"; a.click(); URL.revokeObjectURL(url);
+}
+// One row per engaged day, ready to open in Excel/Sheets/stats tools.
+function csvCell(v){
+  v = (v==null ? "" : String(v));
+  if(/[",\n]/.test(v)) v = '"' + v.replace(/"/g,'""') + '"';
+  return v;
+}
+function exportCSV(){
+  const cols = ["date","drinks","alcohol_free","followed_intention","intention","mood","exercised","thc","night_potion","resting_hr","feelings","checkin_needs","checkin_note","helped","hindered","value_reflection","self_compassion","morning_notes","urges_ridden"];
+  const keys = Object.keys(state.days).filter(k=>hasEngagement(state.days[k])).sort();
+  const rows = [cols.join(",")];
+  keys.forEach(k=>{
+    const d = state.days[k], e = d.evening||{}, m = d.morning||{}, c = d.checkin||{}, intn = d.intention||{};
+    const feelings = Array.isArray(m.physical) ? m.physical.join("; ") : (m.physical||"");
+    const needs    = Array.isArray(c.needs)    ? c.needs.join("; ")    : (c.need||"");
+    rows.push([
+      k, drinkCount(k), isAFDay(k)?"yes":"no", e.followed||"", intn.goal||"",
+      e.mood!=null?e.mood:"", e.exercise||"", e.thc||"", e.potion||"", m.rhr!=null?m.rhr:"",
+      feelings, needs, c.note||"", e.helped||"", e.hindered||"", e.value||"", e.compassion||"", m.notice||"", d.urgesPaused||0
+    ].map(csvCell).join(","));
+  });
+  const blob = new Blob([rows.join("\n")], {type:"text/csv"});
+  const url = URL.createObjectURL(blob); const a = document.createElement("a");
+  a.href = url; a.download = "mindful-pace-data-"+TODAY+".csv"; a.click(); URL.revokeObjectURL(url);
+}
+function importData(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{ try{ state=Object.assign(blankState(),JSON.parse(reader.result)); save(); renderAll(); alert("Backup restored."); }catch(err){ alert("That file could not be read as a backup."); } };
+  reader.readAsText(file); e.target.value="";
+}
+function resetData(){
+  if(confirm("Erase all data on this device? This cannot be undone. Export a backup first if you're unsure.")){ state=blankState(); save(); renderAll(); }
+}
+
+/* ============================================================ INIT */
+function renderAll(){
+  document.getElementById("todayDate").textContent = prettyDate();
+  setActiveDate(TODAY);                 // sets the date bar and renders the day sections
+  renderSettings(); renderProfile();
+  openTimeRelevantRitual();
+}
+function openTimeRelevantRitual(){
+  const h = new Date().getHours();
+  let key = "intention";
+  if(h < 10) key = "morning";
+  else if(h < 12) key = "intention";
+  else if(h < 17) key = "checkin";
+  else key = "evening";
+  const el = document.querySelector('.ritual[data-ritual="'+key+'"]');
+  if(el) el.classList.add("open");
+}
+renderAll();
+</script>
+</body>
+</html>
