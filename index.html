@@ -160,6 +160,7 @@
   nav.tabs{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:var(--maxw); background:#fff; border-top:1px solid var(--line); display:flex; padding:6px 2px calc(env(safe-area-inset-bottom) + 6px); z-index:40; }
   nav.tabs button{ flex:1; background:none; border:none; cursor:pointer; padding:8px 1px; color:var(--mauve); font-size:10.5px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:3px; }
   nav.tabs button .ic{ font-size:18px; line-height:1; }
+  nav.tabs button svg.ic{ width:22px; height:22px; }
   nav.tabs button[aria-current="true"]{ color:var(--teal); }
 
   .urge-fab{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom) + 64px); z-index:45; background:linear-gradient(135deg,var(--berry),var(--pink)); color:#fff; border:none; border-radius:999px; padding:12px 22px; font-size:15px; font-weight:700; box-shadow:0 8px 24px rgba(168,48,134,.35); cursor:pointer; }
@@ -342,16 +343,17 @@
           <label class="field">Night potion? &#127769; <span style="font-weight:400;color:var(--muted-text)">(magnesium)</span></label>
           <div class="chips" id="evePotion"></div>
 
-          <label class="field" id="eveValueQ">How did today's choice support your values?</label>
-          <p class="hint" id="eveValueReminder" style="margin:0 0 8px;"></p>
-          <textarea id="eveValue"></textarea>
+          <label class="field">What best describes today?</label>
+          <div class="chips" id="eveDayType"></div>
 
-          <label class="field">What helped?</label>
-          <textarea id="eveHelped"></textarea>
-          <label class="field">What got in the way?</label>
-          <textarea id="eveHindered"></textarea>
-          <label class="field">One sentence of self-compassion</label>
-          <textarea id="eveCompassion" placeholder="Speak to yourself the way you'd speak to a friend"></textarea>
+          <label class="field">What mattered most today?</label>
+          <div class="chips" id="eveMattered"></div>
+
+          <label class="field">What did I learn today?</label>
+          <textarea id="eveLearn" placeholder="e.g. I wanted a drink because I was bored, not stressed. The booster cut the craving."></textarea>
+
+          <label class="field">Tomorrow I want to&hellip; <span style="font-weight:400;color:var(--muted-text)">(pick any)</span></label>
+          <div class="chips" id="eveTomorrow"></div>
 
           <div class="savebar">
             <button class="btn small" onclick="saveEvening()">Save reflection</button>
@@ -558,12 +560,12 @@
   <button class="urge-fab" onclick="openUrge()">Having an urge?</button>
 
   <nav class="tabs">
-    <button data-tab="today"    aria-current="true" onclick="switchTab('today')"><span class="ic">&#9719;</span>Today</button>
-    <button data-tab="log"      onclick="switchTab('log')"><span class="ic">+</span>Log</button>
-    <button data-tab="insights" onclick="switchTab('insights')"><span class="ic">&#9637;</span>Insights</button>
-    <button data-tab="days"     onclick="switchTab('days')"><span class="ic">&#9728;</span>Days</button>
-    <button data-tab="values"   onclick="switchTab('values')"><span class="ic">&#10070;</span>Values</button>
-    <button data-tab="settings" onclick="switchTab('settings')"><span class="ic">&#9881;</span>Settings</button>
+    <button data-tab="today" aria-current="true" onclick="switchTab('today')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>Today</button>
+    <button data-tab="log" onclick="switchTab('log')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Log</button>
+    <button data-tab="insights" onclick="switchTab('insights')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M6 21v-6M12 21V9M18 21v-9"/></svg>Insights</button>
+    <button data-tab="days" onclick="switchTab('days')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>Days</button>
+    <button data-tab="values" onclick="switchTab('values')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5C12 20.5 4 16 4 9.8 4 7 6.2 5 8.5 5c1.6 0 2.8.8 3.5 2 .7-1.2 1.9-2 3.5-2C17.8 5 20 7 20 9.8c0 6.2-8 10.7-8 10.7z"/></svg>Values</button>
+    <button data-tab="settings" onclick="switchTab('settings')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="2.2" fill="#fff"/><circle cx="15" cy="12" r="2.2" fill="#fff"/><circle cx="8" cy="17" r="2.2" fill="#fff"/></svg>Settings</button>
   </nav>
 
   <!-- Urge pause sheet. Tapping the dark area or the X closes it. -->
@@ -573,7 +575,7 @@
       <div class="grip"></div>
       <h2>Pause</h2>
       <p class="sub" style="color:var(--muted-text);font-size:13.5px;margin-top:0;">An urge is a wave. You don't have to act on it. Let's ride it out together.</p>
-      <p class="urge-line">I notice I'm having the thought that I want a drink.</p>
+      <p class="urge-line" id="urgeLine">I notice I'm having the thought that I want a drink.</p>
       <div id="urgeWhy" class="gentle" style="display:none;"></div>
 
       <div class="breath-zone">
@@ -582,14 +584,32 @@
         <div style="margin-top:10px;"><button class="btn small" id="breathBtn" onclick="toggleBreath()">Start 2-minute breath</button></div>
       </div>
 
-      <label class="field">What is this urge trying to give me?</label>
-      <textarea id="urgeNeed"></textarea>
-      <label class="field">Will drinking move me toward or away from the person I want to be today?</label>
-      <div class="toward-away" id="urgeDirection"></div>
-      <label class="field">One 5-minute action I can take before deciding</label>
-      <input type="text" id="urgeAction" placeholder="e.g. step outside, make tea, text someone" />
+      <div style="text-align:center;margin:2px 0 8px;">
+        <button class="btn ghost small" onclick="waitItOut()">Wait it out</button>
+      </div>
+      <div id="urgeWaitPanel" style="display:none;text-align:center;margin-bottom:10px;">
+        <div class="timer" id="urgeWaitCountdown">15:00</div>
+        <p class="hint" id="urgeWaitMsg" style="margin-top:4px;"></p>
+      </div>
 
-      <div class="savebar"><button class="btn block" onclick="rideWave()">I've ridden the wave</button></div>
+      <label class="field">Name the thought</label>
+      <input type="text" id="urgeThought" placeholder="e.g. I need a drink to unwind" />
+
+      <label class="field">Unhook from it &middot; reframe it</label>
+      <textarea id="urgeReframeText" placeholder="Put it at arm's length, e.g. I'm having the thought that I need a drink to unwind."></textarea>
+
+      <label class="field">What's the underlying need?</label>
+      <div class="chips" id="urgeNeedTags"></div>
+
+      <div id="urgeActionsWrap" style="display:none;">
+        <label class="field">Choose an alternative action</label>
+        <div class="chips" id="urgeActions"></div>
+      </div>
+
+      <div class="savebar" style="display:flex;gap:8px;">
+        <button class="btn ghost" style="flex:1;" onclick="waitItOut()">Wait it out</button>
+        <button class="btn" style="flex:1;" onclick="rideWave()">I've ridden the wave</button>
+      </div>
       <p class="footnote" style="margin-top:10px;">Whatever you choose next, you showed up and paused. That counts.</p>
     </div>
   </div>
@@ -603,6 +623,33 @@
 const INTENTION_OPTIONS = ["No drinks", "Flexible but mindful", "Special occasion"];
 const WORKOUT_OPTIONS = ["Yes","No","Already did","Rest day"];
 const ACTIVITY_OPTIONS = ["Puzzle","Exercise","Clean","Games","Read","Cook","Walk","Bath"];
+
+// Evening reflection: narrative day-type, look-ahead, all tap-based.
+const DAY_TYPE_OPTIONS = ["A values-aligned day","A learning day","A survival day","A recovery day","A connection day","A growth day","A difficult day"];
+const TOMORROW_OPTIONS = ["Repeat what worked","Get back on track","Protect my workout","Prioritize sleep","Be more present","Drink mindfully","Take a day off alcohol"];
+
+// Urge tool: functional needs + rotating ACT defusion prompts.
+// Urge tool: each need maps to alternative actions shown when you pick it.
+const URGE_ACTIONS = {
+  "Reward": ["Video game","Favorite tea","Puzzle","Read","20 min guilt-free downtime"],
+  "Transition from work": ["Change clothes","Walk outside","Shower","Listen to music","Take booster","Stretch"],
+  "Connection": ["Text someone","Call someone","Sit with family","Pet the cat"],
+  "Relaxation": ["Warm shower or bath","Five slow breaths","Make tea","Put on pajamas"],
+  "Stimulation": ["Short walk","Puzzle or game","Small creative task"],
+  "Relief": ["Name the feeling","Grounding exercise","Text someone you trust","Step outside"],
+  "Rest": ["Lie down ten minutes","Close your eyes","Calm music","An early night"],
+  "Fun": ["Play a game","Music and move","Call a fun friend","Something playful"],
+  "Escape": ["Step outside","Put on a show","Short walk or drive","Move to another room"]
+};
+const DEFUSION_PROMPTS = [
+  "I notice I'm having the thought that alcohol would help.",
+  "My brain is offering me the \u201cI deserve this\u201d story.",
+  "This feeling can be here without me acting on it.",
+  "I can carry this discomfort for 10 minutes.",
+  "An urge is not a command.",
+  "What would Runner Claire choose next?",
+  "What would Tomorrow Claire thank me for?"
+];
 
 const NEED_OPTIONS = ["Relaxation","Reward","Stimulation","Connection","Transition from work mode","Boredom relief","Emotional relief","Stress relief"];
 
@@ -868,35 +915,40 @@ let pickFollowed = null;
 let pickEveExercise = null;
 let pickThc = null;
 let pickPotion = null;
+let pickDayType = null;
+let pickMattered = null;
+let pickTomorrow = [];
 let eveMoodTouched = false;
+function matteredOptions(){
+  const vals = (state.values||[]).filter(Boolean);
+  const base = vals.length ? vals : DEFAULT_VALUES.slice();
+  return base.concat(base.includes("Rest") ? [] : ["Rest"]);
+}
 function renderEvening(){
   const d = getDay(activeDate); const e = d.evening || {};
   pickFollowed = e.followed || null;
   pickEveExercise = e.exercise || null;
   pickThc = e.thc || null;
   pickPotion = e.potion || null;
+  pickDayType = e.dayType || null;
+  pickMattered = e.mattered || null;
+  pickTomorrow = Array.isArray(e.tomorrow) ? e.tomorrow.slice() : [];
   buildChips("eveFollowed", FOLLOWED_OPTIONS, pickFollowed, v=>pickFollowed=v);
   buildChips("eveExercise", EXERCISE_OPTIONS, pickEveExercise, v=>pickEveExercise=v);
   buildChips("eveThc", EXERCISE_OPTIONS, pickThc, v=>pickThc=v);
   buildChips("evePotion", EXERCISE_OPTIONS, pickPotion, v=>pickPotion=v);
+  buildChips("eveDayType", DAY_TYPE_OPTIONS, pickDayType, v=>pickDayType=v);
+  buildChips("eveMattered", matteredOptions(), pickMattered, v=>pickMattered=v, true);
+  buildMultiChips("eveTomorrow", TOMORROW_OPTIONS, pickTomorrow, a=>pickTomorrow=a, true);
   setVal("eveTotal", e.total!=null ? e.total : (d.drinks?d.drinks.length:0));
+  setVal("eveLearn", e.learn);
   // mood is a slider; only saved if you actually move it, so it stays optional
   eveMoodTouched = (e.mood!=null);
   const ms = document.getElementById("eveMood");
   ms.value = e.mood!=null ? e.mood : 5;
   ms.oninput = function(){ eveMoodTouched=true; document.getElementById("eveMoodVal").textContent=this.value; };
   document.getElementById("eveMoodVal").textContent = e.mood!=null ? e.mood : "not set";
-  setVal("eveValue", e.value);
-  setVal("eveHelped", e.helped); setVal("eveHindered", e.hindered);
-  setVal("eveCompassion", e.compassion);
-  document.getElementById("eveValueReminder").innerHTML = valuesReminderText();
-  setDot("evening", !!e.followed);
-}
-// Lists the user's own values under the evening question, as a reminder.
-function valuesReminderText(){
-  const list = (state.values||[]).filter(Boolean);
-  if(!list.length) return "Add your values on the Values tab and they'll show here.";
-  return "Your values: " + list.join(" &middot; ");
+  setDot("evening", !!(e.followed || e.dayType));
 }
 function saveEvening(){
   day(activeDate).evening = {
@@ -906,10 +958,12 @@ function saveEvening(){
     exercise: pickEveExercise,
     thc: pickThc,
     potion: pickPotion,
-    value:val("eveValue"), helped:val("eveHelped"), hindered:val("eveHindered"),
-    compassion:val("eveCompassion")
+    dayType: pickDayType,
+    mattered: pickMattered,
+    learn: val("eveLearn"),
+    tomorrow: pickTomorrow.slice()
   };
-  save(); flash("flash-evening"); setDot("evening", !!pickFollowed);
+  save(); flash("flash-evening"); setDot("evening", !!(pickFollowed || pickDayType));
 }
 
 /* ============================================================ MORNING-AFTER (no exercise now) */
@@ -1253,12 +1307,47 @@ function saveWhy(){ state.why = val("whyText"); save(); flash("flash-why"); }
 
 /* ============================================================ URGE TOOL */
 let breathTimer=null, breathSeconds=120, breathPhaseTimer=null;
+let pickUrgeNeed = null;
 function openUrge(){
   document.getElementById("urgeOverlay").classList.add("open");
-  buildChips("urgeDirection", DIRECTION_OPTIONS, null, ()=>{}, true);
-  setVal("urgeNeed",""); setVal("urgeAction","");
+  // rotate a defusion prompt each time the screen opens
+  document.getElementById("urgeLine").textContent = DEFUSION_PROMPTS[Math.floor(Math.random()*DEFUSION_PROMPTS.length)];
+  setVal("urgeThought",""); setVal("urgeReframeText","");
+  pickUrgeNeed = null;
+  buildChips("urgeNeedTags", Object.keys(URGE_ACTIONS), null, v=>{ pickUrgeNeed=v; renderUrgeActions(v); }, true);
+  document.getElementById("urgeActionsWrap").style.display = "none";
+  document.getElementById("urgeWaitPanel").style.display = "none";
+  stopWait();
   renderUrgeWhy();
 }
+// When a need is picked, show alternative actions matched to it (tappable, in-the-moment).
+function renderUrgeActions(need){
+  const wrap = document.getElementById("urgeActionsWrap");
+  const list = URGE_ACTIONS[need] || [];
+  if(!list.length){ wrap.style.display="none"; return; }
+  buildChips("urgeActions", list, null, ()=>{}, true);
+  wrap.style.display = "block";
+}
+// "Wait it out": a real 15-minute urge-surf countdown you can step away from.
+let waitTimer=null, waitSeconds=0;
+function waitItOut(){
+  clearInterval(waitTimer);
+  waitSeconds = 15*60;
+  const panel = document.getElementById("urgeWaitPanel");
+  const cd = document.getElementById("urgeWaitCountdown");
+  const msg = document.getElementById("urgeWaitMsg");
+  panel.style.display = "block";
+  msg.textContent = "Waiting, not deciding. Urges usually crest and fade within about 20 minutes. Let it be here without acting on it. Step away if you like.";
+  const tick = () => {
+    const m = Math.floor(waitSeconds/60), s = waitSeconds%60;
+    cd.textContent = m + ":" + String(s).padStart(2,"0");
+    if(waitSeconds<=0){ clearInterval(waitTimer); waitTimer=null; msg.textContent = "Time's up. Notice the urge now. Often it has softened. Wait again, or mark that you've ridden the wave."; return; }
+    waitSeconds--;
+  };
+  tick(); waitTimer = setInterval(tick, 1000);
+  panel.scrollIntoView({behavior:"smooth", block:"center"});
+}
+function stopWait(){ clearInterval(waitTimer); waitTimer=null; }
 // Shows the user's "why" and values inside the pause, as the reminder of what they're moving toward.
 function renderUrgeWhy(){
   const el = document.getElementById("urgeWhy");
@@ -1273,7 +1362,7 @@ function renderUrgeWhy(){
 }
 // Closing with the X or the backdrop just dismisses, no count.
 function dismissUrge(){
-  stopBreath();
+  stopBreath(); stopWait();
   document.getElementById("urgeOverlay").classList.remove("open");
 }
 // "I've ridden the wave" is the one that counts, and it always counts toward today.
@@ -1328,7 +1417,7 @@ function csvCell(v){
   return v;
 }
 function exportCSV(){
-  const cols = ["date","drinks","alcohol_free","followed_intention","intention","workout_plan","identities","act_like","evening_mood","exercised","thc","night_potion","resting_hr","morning_mood","feelings","checkin_needs","home_activities","adderall_booster","checkin_note","helped","hindered","value_reflection","self_compassion","morning_notes","urges_ridden"];
+  const cols = ["date","drinks","alcohol_free","followed_intention","intention","workout_plan","identities","act_like","evening_mood","exercised","thc","night_potion","resting_hr","morning_mood","feelings","checkin_needs","home_activities","adderall_booster","checkin_note","day_type","mattered_most","learned","tomorrow","morning_notes","urges_ridden"];
   const keys = Object.keys(state.days).filter(k=>hasEngagement(state.days[k])).sort();
   const rows = [cols.join(",")];
   keys.forEach(k=>{
@@ -1337,10 +1426,11 @@ function exportCSV(){
     const needs    = Array.isArray(c.needs)    ? c.needs.join("; ")    : (c.need||"");
     const acts     = Array.isArray(c.activities) ? c.activities.join("; ") : "";
     const ids      = Array.isArray(intn.identities) ? intn.identities.join("; ") : "";
+    const tom      = Array.isArray(e.tomorrow) ? e.tomorrow.join("; ") : "";
     rows.push([
       k, drinkCount(k), isAFDay(k)?"yes":"no", e.followed||"", intn.goal||"", intn.workout||"", ids, intn.actLike||"",
       e.mood!=null?e.mood:"", e.exercise||"", e.thc||"", e.potion||"", m.rhr!=null?m.rhr:"", m.mood!=null?m.mood:"",
-      feelings, needs, acts, c.adderall||"", c.note||"", e.helped||"", e.hindered||"", e.value||"", e.compassion||"", m.notice||"", d.urgesPaused||0
+      feelings, needs, acts, c.adderall||"", c.note||"", e.dayType||"", e.mattered||"", e.learn||"", tom, m.notice||"", d.urgesPaused||0
     ].map(csvCell).join(","));
   });
   const blob = new Blob([rows.join("\n")], {type:"text/csv"});
