@@ -204,6 +204,12 @@
   .cal-legend{ display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:11.5px; color:var(--muted-text); }
   .cal-legend span{ display:inline-flex; align-items:center; gap:5px; }
   .cal-legend i{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+  .cal-quick{ margin-top:14px; padding:14px; border:1px solid var(--line); border-radius:12px; background:#fbfafc; }
+  .cal-quick-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .cal-quick-head span{ font-weight:600; color:var(--ink); }
+  .cal-quick-head .x{ border:none; background:none; font-size:20px; line-height:1; color:var(--mauve); cursor:pointer; padding:0 4px; }
+  .cal-quick-foot{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .cal-cell.selected{ outline:2px solid var(--berry); outline-offset:-2px; }
 </style>
 </head>
 <body>
@@ -323,10 +329,6 @@
         <div class="body">
           <label class="field">Did I follow my intention?</label>
           <div class="chips" id="eveFollowed"></div>
-
-          <label class="field">Total drinks today</label>
-          <input type="number" id="eveTotal" min="0" step="1" placeholder="0" />
-          <p class="hint">Fills in from your log; adjust if needed.</p>
 
           <label class="field">Mood tonight <span id="eveMoodVal" style="color:var(--teal-deep);font-weight:700;">not set</span></label>
           <input type="range" id="eveMood" min="1" max="10" step="1" />
@@ -458,7 +460,7 @@
       </div>
       <div class="card">
         <h2>Calendar</h2>
-        <p class="sub">Tap a day to open and edit it.</p>
+        <p class="sub">Tap a day to log your drinks for it.</p>
         <div class="cal-head">
           <button class="dnav" onclick="calMonth(-1)" aria-label="Previous month">&#8249;</button>
           <div id="calTitle"></div>
@@ -468,13 +470,26 @@
         <div class="cal-legend">
           <span><i style="background:#dcebe9"></i>Alcohol-free</span>
           <span><i style="background:#f3dcea"></i>Drinking day</span>
-          <span><i style="background:#f0f1f3"></i>Missed</span>
+          <span><i style="background:#f0f1f3"></i>Not recorded</span>
+        </div>
+
+        <div id="calQuick" class="cal-quick" style="display:none;">
+          <div class="cal-quick-head">
+            <span id="calQuickLabel"></span>
+            <button class="x" onclick="closeCalQuick()" aria-label="Close">&times;</button>
+          </div>
+          <p class="hint" style="margin:0 0 8px;">How many drinks? Tap a number. Tap <b>0</b> to mark it alcohol-free.</p>
+          <div class="chips" id="calQuickChips"></div>
+          <div class="cal-quick-foot">
+            <button class="btn ghost small" onclick="clearCalQuick()">Clear (not recorded)</button>
+            <button class="btn small" onclick="openCalDay()">Open full day</button>
+          </div>
         </div>
       </div>
 
       <div class="card">
         <h2>Badges</h2>
-        <p class="sub">Earned by total alcohol-free days. A quieter day never resets them.</p>
+        <p class="sub">Earned by consecutive alcohol-free days. Once earned, a later slip never takes them away.</p>
         <div id="badgeList"></div>
       </div>
     </section>
@@ -823,16 +838,58 @@ function renderCalendar(){
     let cls = "cal-cell", click = "";
     if(key > TODAY){ cls += " future"; }
     else {
-      if(hasEngagement(state.days[key])) cls += (drinkCount(key)===0) ? " af" : " drank";
-      else if(key < TODAY) cls += " missed";        // a past day with nothing = missed
+      const r = recordedDrinks(key);
+      if(r===0) cls += " af";
+      else if(r>0) cls += " drank";
+      else if(key < TODAY) cls += " missed";        // past day with no drink record
       if(key === TODAY) cls += " today";
-      click = ' onclick="openDay(\''+key+'\')"';
+      if(key === calSelected) cls += " selected";
+      click = ' onclick="selectCalDay(\''+key+'\')"';
     }
     html += '<div class="'+cls+'"'+click+'>'+dnum+'</div>';
   }
   grid.innerHTML = html;
 }
 function openDay(key){ setActiveDate(key); switchTab("today"); }
+
+/* Quick drink tracker: tap a calendar day, tap a number. No reflection needed. */
+let calSelected = null;
+const QUICK_DRINK_CHIPS = ["0","1","2","3","4","5","6","7+"];
+function selectCalDay(key){
+  calSelected = key;
+  const panel = document.getElementById("calQuick");
+  document.getElementById("calQuickLabel").textContent = prettyKey(key);
+  renderCalQuickChips();
+  panel.style.display = "block";
+  renderCalendar();
+  panel.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+function renderCalQuickChips(){
+  const r = recordedDrinks(calSelected);
+  const current = (r==null) ? null : (r>=7 ? "7+" : String(r));
+  buildChips("calQuickChips", QUICK_DRINK_CHIPS, current, setCalDrink, true);
+}
+function setCalDrink(label){
+  let n;
+  if(label==="7+"){
+    const cur = recordedDrinks(calSelected);
+    n = (cur!=null && cur>=7) ? cur+1 : 7;   // tap again to climb past 7
+  } else { n = Number(label); }
+  day(calSelected).drinkTotal = n;
+  save();
+  renderCalQuickChips(); renderCalendar(); renderDays();
+}
+function clearCalQuick(){
+  const d = state.days[calSelected];
+  if(d){ delete d.drinkTotal; if(d.evening) delete d.evening.total; save(); }
+  renderCalQuickChips(); renderCalendar(); renderDays();
+}
+function closeCalQuick(){
+  calSelected = null;
+  document.getElementById("calQuick").style.display = "none";
+  renderCalendar();
+}
+function openCalDay(){ if(calSelected) openDay(calSelected); }
 
 /* ============================================================ INTENTION */
 let pickIntention = null;
@@ -940,7 +997,6 @@ function renderEvening(){
   buildChips("eveDayType", DAY_TYPE_OPTIONS, pickDayType, v=>pickDayType=v);
   buildChips("eveMattered", matteredOptions(), pickMattered, v=>pickMattered=v, true);
   buildMultiChips("eveTomorrow", TOMORROW_OPTIONS, pickTomorrow, a=>pickTomorrow=a, true);
-  setVal("eveTotal", e.total!=null ? e.total : (d.drinks?d.drinks.length:0));
   setVal("eveLearn", e.learn);
   // mood is a slider; only saved if you actually move it, so it stays optional
   eveMoodTouched = (e.mood!=null);
@@ -951,9 +1007,10 @@ function renderEvening(){
   setDot("evening", !!(e.followed || e.dayType));
 }
 function saveEvening(){
+  const prev = (getDay(activeDate).evening)||{};
   day(activeDate).evening = {
     followed:pickFollowed,
-    total: val("eveTotal")===""?null:Number(val("eveTotal")),
+    total: prev.total!=null ? prev.total : undefined,   // preserve any legacy value; drinks are tracked on the calendar now
     mood: eveMoodTouched ? Number(document.getElementById("eveMood").value) : null,
     exercise: pickEveExercise,
     thc: pickThc,
@@ -1099,22 +1156,31 @@ function renderBAC(){
 }
 
 /* ============================================================ DRINK COUNTS + AF DAYS */
-function drinkCount(key){
-  const d = state.days[key]; if(!d) return 0;
-  if(d.evening && d.evening.total!=null) return d.evening.total;
-  return d.drinks ? d.drinks.length : 0;
+// The recorded drink count for a day, or null if you never entered one.
+// Detailed log entries count; otherwise a quick-tracked number (drinkTotal);
+// otherwise the older evening.total; otherwise null (blank / not recorded).
+function recordedDrinks(key){
+  const d = state.days[key]; if(!d) return null;
+  if(d.drinks && d.drinks.length>0) return d.drinks.length;
+  if(d.drinkTotal!=null) return d.drinkTotal;
+  if(d.evening && d.evening.total!=null) return d.evening.total;   // legacy
+  return null;
 }
-function hasEngagement(d){ return !!(d && (d.intention||d.checkin||d.evening||d.morning||(d.drinks&&d.drinks.length))); }
-function isAFDay(key){ return hasEngagement(state.days[key]) && drinkCount(key)===0; }
+// For charts/sums where a number is needed; unrecorded reads as 0.
+function drinkCount(key){ const r = recordedDrinks(key); return r==null ? 0 : r; }
+// True only when you explicitly recorded zero drinks.
+function isAFDay(key){ return recordedDrinks(key)===0; }
+function isDrinkingDay(key){ const r = recordedDrinks(key); return r!=null && r>0; }
+function hasEngagement(d){ return !!(d && (d.intention||d.checkin||d.evening||d.morning||(d.drinks&&d.drinks.length)||d.drinkTotal!=null)); }
 
 function totalAFDays(){ return Object.keys(state.days).filter(isAFDay).length; }
 function currentAFStreak(){
   let streak=0; let key=TODAY;
-  if(!hasEngagement(state.days[TODAY])) key = shiftKey(TODAY,-1); // a fresh morning shouldn't break it
+  if(recordedDrinks(TODAY)==null) key = shiftKey(TODAY,-1); // today not recorded yet shouldn't break it
   while(true){
-    const d = state.days[key];
-    if(!hasEngagement(d)) break;   // gap / untracked day -> stop, we can't claim it
-    if(drinkCount(key)>0) break;   // a drinking day -> stop
+    const r = recordedDrinks(key);
+    if(r==null) break;   // no record that day -> streak can't continue through it
+    if(r>0) break;       // a drinking day -> stop
     streak++; key = shiftKey(key,-1);
   }
   return streak;
@@ -1239,8 +1305,9 @@ function dayAfterStats(){
   const out = { drink:{rhr:[],mood:[],ex:[]}, free:{rhr:[],mood:[],ex:[]} };
   Object.keys(state.days).forEach(key=>{
     const prev = shiftKey(key,-1);
-    if(!hasEngagement(state.days[prev])) return;       // need to know the night before
-    const grp = drinkCount(prev)>0 ? "drink":"free";
+    const pr = recordedDrinks(prev);
+    if(pr==null) return;                 // need a recorded night before to compare
+    const grp = pr>0 ? "drink":"free";
     const d = state.days[key];
     if(d.morning && d.morning.rhr!=null) out[grp].rhr.push(d.morning.rhr);
     if(d.evening && d.evening.mood!=null) out[grp].mood.push(d.evening.mood);
@@ -1272,17 +1339,21 @@ function renderDayAfter(){
 function renderDays(){
   renderCalendar();
   const total = totalAFDays();
-  document.getElementById("afStreak").textContent = currentAFStreak();
-  document.getElementById("afBest").textContent   = longestAFStreak();
+  const best = longestAFStreak();
+  const current = currentAFStreak();
+  document.getElementById("afStreak").textContent = current;
+  document.getElementById("afBest").textContent   = best;
   document.getElementById("afTotal").textContent  = total;
   document.getElementById("afWaves").textContent  = Object.values(state.days).reduce((s,d)=>s+(d.urgesPaused||0),0);
   const wrap = document.getElementById("badgeList"); wrap.innerHTML="";
   AF_MILESTONES.forEach(m=>{
-    const reached = total>=m.n;
+    const reached = best>=m.n;                      // earned by a real consecutive run
+    const toGo = Math.max(0, m.n-current);          // from the streak you're on now
+    const sub = reached ? "Earned" : (toGo + " more in a row to go");
     const row = document.createElement("div"); row.className="milestone";
     row.innerHTML = '<div class="ms-badge '+(reached?"reached":"")+'">'+m.n+'</div>'+
       '<div class="ms-text"><div class="t">'+m.label+'</div>'+
-      '<div style="font-size:12.5px;color:var(--muted-text)">'+(reached?"Earned":(m.n-total)+" alcohol-free days to go")+'</div></div>';
+      '<div style="font-size:12.5px;color:var(--muted-text)">'+sub+'</div></div>';
     wrap.appendChild(row);
   });
 }
@@ -1427,8 +1498,10 @@ function exportCSV(){
     const acts     = Array.isArray(c.activities) ? c.activities.join("; ") : "";
     const ids      = Array.isArray(intn.identities) ? intn.identities.join("; ") : "";
     const tom      = Array.isArray(e.tomorrow) ? e.tomorrow.join("; ") : "";
+    const rec      = recordedDrinks(k);
+    const afCell   = rec===0 ? "yes" : (rec>0 ? "no" : "");
     rows.push([
-      k, drinkCount(k), isAFDay(k)?"yes":"no", e.followed||"", intn.goal||"", intn.workout||"", ids, intn.actLike||"",
+      k, rec==null?"":rec, afCell, e.followed||"", intn.goal||"", intn.workout||"", ids, intn.actLike||"",
       e.mood!=null?e.mood:"", e.exercise||"", e.thc||"", e.potion||"", m.rhr!=null?m.rhr:"", m.mood!=null?m.mood:"",
       feelings, needs, acts, c.adderall||"", c.note||"", e.dayType||"", e.mattered||"", e.learn||"", tom, m.notice||"", d.urgesPaused||0
     ].map(csvCell).join(","));
